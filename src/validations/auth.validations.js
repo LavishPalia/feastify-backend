@@ -21,3 +21,8 @@ export const createNewAccountValidation = [
     .isIn(["user", "owner", "deliveryBoy"])
     .withMessage("Invalid role"),
 ];
+
+export const loginValidation = [
+  check("email").trim().isEmail().withMessage("Invalid email address"),
+  check("password").trim().notEmpty().withMessage("Password cannot be empty"),
+];

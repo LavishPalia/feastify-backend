@@ -3,8 +3,13 @@ import { Router } from "express";
 import {
   createNewAccount,
   getAllCustomers,
+  loginUser,
+  logoutUser,
 } from "../controllers/auth.controllers.js";
-import { createNewAccountValidation } from "../validations/auth.validations.js";
+import {
+  createNewAccountValidation,
+  loginValidation,
+} from "../validations/auth.validations.js";
 
 const router = Router();
 
@@ -13,6 +18,9 @@ router.post(
   createNewAccountValidation,
   createNewAccount
 );
+
+router.post("/login", loginValidation, loginUser);
+router.post("/logout", logoutUser);
 
 router.get("/all/customers", getAllCustomers);
 

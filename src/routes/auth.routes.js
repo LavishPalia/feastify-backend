@@ -5,6 +5,9 @@ import {
   getAllCustomers,
   loginUser,
   logoutUser,
+  sendOTP,
+  verifyOTP,
+  resetPassword,
 } from "../controllers/auth.controllers.js";
 import {
   createNewAccountValidation,
@@ -21,6 +24,10 @@ router.post(
 
 router.post("/login", loginValidation, loginUser);
 router.post("/logout", logoutUser);
+
+router.post("/send-otp", sendOTP);
+router.post("/verify-otp", verifyOTP);
+router.post("/reset-password", resetPassword);
 
 router.get("/all/customers", getAllCustomers);
 

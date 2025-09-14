@@ -3,8 +3,16 @@ import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { User } from "../models/User.model.js";
 import { validationResult, matchedData } from "express-validator";
+import crypto from "crypto";
+import { sendOTPMail } from "../utils/nodemailer.js";
+
+function generateOTP() {
+  return crypto.randomInt(100000, 1000000).toString();
+}
 
 const createNewAccount = asyncHandler(async (req, res, next) => {
+  console.log(req.body);
+
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
@@ -127,4 +135,74 @@ const getAllCustomers = asyncHandler(async (req, res, next) => {
     .json(new ApiResponse(200, users, "customer fetched successfully"));
 });
 
-export { createNewAccount, loginUser, logoutUser, getAllCustomers };
+const sendOTP = asyncHandler(async (req, res, next) => {
+  const { email } = req.body;
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    return next(new ApiError(404, "User does not exist"));
+  }
+
+  const otp = generateOTP();
+
+  user.passwordResetOtp = otp;
+  user.otpExpires = Date.now() + 5 * 60 * 1000;
+  user.isOtpVerified = false;
+
+  await user.save();
+
+  await sendOTPMail(email, otp);
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Otp sent successfully"));
+});
+
+const verifyOTP = asyncHandler(async (req, res, next) => {
+  const { email, otp } = req.body;
+
+  const user = await User.findOne({ email });
+
+  if (!user || user.passwordResetOtp !== otp || user.otpExpires < Date.now()) {
+    return next(new ApiError(404, "Invalid or expired OTP"));
+  }
+
+  user.passwordResetOtp = undefined;
+  user.otpExpires = undefined;
+  user.isOtpVerified = true;
+
+  await user.save();
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Otp verified successfully"));
+});
+
+const resetPassword = asyncHandler(async (req, res, next) => {
+  const { email, newPassword } = req.body;
+
+  const user = await User.findOne({ email });
+
+  if (!user || !user.isOtpVerified) {
+    return next(new ApiError(404, "OTP verification is pending"));
+  }
+
+  user.password = newPassword;
+  user.isOtpVerified = false;
+  await user.save();
+
+  return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "Password reset successfull"));
+});
+
+export {
+  createNewAccount,
+  loginUser,
+  logoutUser,
+  sendOTP,
+  verifyOTP,
+  resetPassword,
+  getAllCustomers,
+};

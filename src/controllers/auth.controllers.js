@@ -6,13 +6,17 @@ import { validationResult, matchedData } from "express-validator";
 import crypto from "crypto";
 import { sendOTPMail } from "../utils/nodemailer.js";
 
+const cookieOptions = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "Strict",
+};
+
 function generateOTP() {
   return crypto.randomInt(100000, 1000000).toString();
 }
 
 const createNewAccount = asyncHandler(async (req, res, next) => {
-  console.log(req.body);
-
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
@@ -42,12 +46,7 @@ const createNewAccount = asyncHandler(async (req, res, next) => {
     email: newUser.email,
     mobile: newUser.mobile,
     role: newUser.role,
-  };
-
-  const cookieOptions = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "None",
+    createdAt: newUser.createdAt,
   };
 
   return res
@@ -63,8 +62,6 @@ const createNewAccount = asyncHandler(async (req, res, next) => {
 });
 
 const loginUser = asyncHandler(async (req, res, next) => {
-  console.log(req.body);
-
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
@@ -81,8 +78,6 @@ const loginUser = asyncHandler(async (req, res, next) => {
 
   const isPasswordMatch = await existingUser.comparePassword(password);
 
-  console.log(isPasswordMatch);
-
   if (!isPasswordMatch) {
     return next(new ApiError(400, "Invalid Credentials"));
   }
@@ -94,12 +89,6 @@ const loginUser = asyncHandler(async (req, res, next) => {
     email: existingUser.email,
     mobile: existingUser.mobile,
     role: existingUser.role,
-  };
-
-  const cookieOptions = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "None",
   };
 
   return res
@@ -115,12 +104,6 @@ const loginUser = asyncHandler(async (req, res, next) => {
 });
 
 const logoutUser = asyncHandler(async (req, res, next) => {
-  const cookieOptions = {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "None",
-  };
-
   res
     .status(200)
     .clearCookie("accessToken", cookieOptions)
